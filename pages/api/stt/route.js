@@ -1,22 +1,21 @@
 import speech from '@google-cloud/speech';
+import { NextResponse } from 'next/server';
 
-const credentials = JSON.parse(
-  process.env.GOOGLE_CLOUD_CREDENTIALS
-);
+const credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
 
 const client = new speech.SpeechClient({
   credentials
 });
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { audioBase64, mimeType } = req.body;
-  if (!audioBase64) return res.status(400).json({ error: 'audio required' });
-
-  const languageCode = process.env.STT_LANGUAGE || 'es-ES';
-
+export async function POST(req) {
   try {
+    const { audioBase64, mimeType } = await req.json();
+    if (!audioBase64) {
+      return NextResponse.json({ error: 'audio required' }, { status: 400 });
+    }
+
+    const languageCode = process.env.STT_LANGUAGE || 'es-ES';
+
     const [response] = await client.recognize({
       audio: { content: audioBase64 },
       config: {
@@ -31,8 +30,9 @@ export default async function handler(req, res) {
       .map(r => r.alternatives[0].transcript)
       .join('\n');
 
-    res.json({ transcript });
+    return NextResponse.json({ transcript });
+
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
