@@ -1,12 +1,18 @@
 import speech from '@google-cloud/speech';
 
-const client = new speech.SpeechClient();
+const credentials = JSON.parse(
+  process.env.GOOGLE_CLOUD_CREDENTIALS
+);
+
+const client = new speech.SpeechClient({
+  credentials
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { audioBase64, mimeType } = req.body || {};
-  if (!audioBase64) return res.status(400).json({ error: 'audioBase64 required' });
+  const { audioBase64, mimeType } = req.body;
+  if (!audioBase64) return res.status(400).json({ error: 'audio required' });
 
   const languageCode = process.env.STT_LANGUAGE || 'es-ES';
 
@@ -22,10 +28,10 @@ export default async function handler(req, res) {
     });
 
     const transcript = response.results
-      .map(r => r.alternatives[0]?.transcript)
+      .map(r => r.alternatives[0].transcript)
       .join('\n');
 
-    res.status(200).json({ transcript });
+    res.json({ transcript });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
