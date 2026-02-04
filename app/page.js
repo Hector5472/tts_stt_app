@@ -3,87 +3,82 @@
 import { useRef, useState } from "react";
 
 export default function Home() {
-  const [text, setText] = useState("Hola desde Google Cloud TTS");
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [transcript, setTranscript] = useState("");
+    const [text, setText] = useState("Hola desde Google Cloud TTS");
+    const [audioUrl, setAudioUrl] = useState(null);
+    const [transcript, setTranscript] = useState("");
 
-  const recorderRef = useRef(null);
-  const chunksRef = useRef([]);
+    const recorderRef = useRef(null);
+    const chunksRef = useRef([]);
 
-  async function synthesize() {
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    });
+    async function synthesize() {
+        const res = await fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
 
-    const json = await res.json();
+        if (!res.ok) {
+            const err = await res.json();
+            alert("Error TTS: " + err.error);
+            return;
+        }
 
-    const bytes = Uint8Array.from(
-      atob(json.audioContent),
-      c => c.charCodeAt(0)
-    );
+        const json = await res.json();
 
-    const blob = new Blob([bytes], { type: json.contentType });
-    setAudioUrl(URL.createObjectURL(blob));
-  }
+        const bytes = Uint8Array.from(
+            atob(json.audioContent),
+            c => c.charCodeAt(0)
+        );
 
-  async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+        const blob = new Blob([bytes], { type: json.contentType });
+        setAudioUrl(URL.createObjectURL(blob));
+    }
 
-    chunksRef.current = [];
-    recorder.ondataavailable = e => chunksRef.current.push(e.data);
-    recorder.onstop = sendAudio;
 
-    recorderRef.current = recorder;
-    recorder.start();
-  }
+    async function startRecording() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
 
-  async function stopRecording() {
-    recorderRef.current?.stop();
-  }
+        chunksRef.current = [];
+        recorder.ondataavailable = e => chunksRef.current.push(e.data);
+        recorder.onstop = sendAudio;
 
-  async function sendAudio() {
-    const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-    const buffer = await blob.arrayBuffer();
-    const base64 = btoa(
-      String.fromCharCode(...new Uint8Array(buffer))
-    );
+        recorderRef.current = recorder;
+        recorder.start();
+    }
 
-    const res = await fetch("/api/stt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        audioBase64: base64,
-        mimeType: "audio/webm"
-      })
-    });
+    function stopRecording() {
+        const recorder = recorderRef.current;
+        if (!recorder) return;
 
-    const json = await res.json();
-    setTranscript(json.transcript || "");
-  }
+        if (recorder.state === "recording") {
+            recorder.stop();
+        }
+    }
 
-  return (
-    <div style={{ padding: 24 }}>
-      <h2>Text to Speech</h2>
-      <textarea
-        rows={4}
-        cols={60}
-        value={text}
-        onChange={e => setText(e.target.value)}
-      />
-      <br />
-      <button onClick={synthesize}>Generar audio</button>
-      {audioUrl && <audio src={audioUrl} controls />}
+    async function sendAudio() {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const buffer = await blob.arrayBuffer();
+        const base64 = btoa(
+            String.fromCharCode(...new Uint8Array(buffer))
+        );
 
-      <hr />
+        const res = await fetch("/api/stt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                audioBase64: base64,
+                mimeType: "audio/webm"
+            })
+        });
 
-      <h2>Speech to Text</h2>
-      <button onClick={startRecording}>Grabar</button>
-      <button onClick={stopRecording}>Parar</button>
+        if (!res.ok) {
+            const err = await res.json();
+            alert("Error STT: " + err.error);
+            return;
+        }
 
-      <pre>{transcript}</pre>
-    </div>
-  );
+        const json = await res.json();
+        setTranscript(json.transcript || "No se detectó voz");
+    }
 }
