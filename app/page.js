@@ -1,19 +1,22 @@
-import { useRef, useState } from 'react';
+"use client";
+
+import { useRef, useState } from "react";
 
 export default function Home() {
-  const [text, setText] = useState('Hola desde Google Cloud TTS');
+  const [text, setText] = useState("Hola desde Google Cloud TTS");
   const [audioUrl, setAudioUrl] = useState(null);
-  const [transcript, setTranscript] = useState('');
+  const [transcript, setTranscript] = useState("");
 
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
 
   async function synthesize() {
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
     });
+
     const json = await res.json();
 
     const bytes = Uint8Array.from(
@@ -27,7 +30,7 @@ export default function Home() {
 
   async function startRecording() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
 
     chunksRef.current = [];
     recorder.ondataavailable = e => chunksRef.current.push(e.data);
@@ -42,23 +45,23 @@ export default function Home() {
   }
 
   async function sendAudio() {
-    const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+    const blob = new Blob(chunksRef.current, { type: "audio/webm" });
     const buffer = await blob.arrayBuffer();
     const base64 = btoa(
       String.fromCharCode(...new Uint8Array(buffer))
     );
 
-    const res = await fetch('/api/stt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/stt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         audioBase64: base64,
-        mimeType: 'audio/webm'
+        mimeType: "audio/webm"
       })
     });
 
     const json = await res.json();
-    setTranscript(json.transcript || '');
+    setTranscript(json.transcript || "");
   }
 
   return (
