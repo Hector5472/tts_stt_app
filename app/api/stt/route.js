@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import speech from '@google-cloud/speech';
 import { NextResponse } from 'next/server';
 
