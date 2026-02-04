@@ -151,12 +151,10 @@ Las credenciales de la API se almacenan en Vercel como variables de entorno encr
 ### Servicios de Google Cloud Utilizados
 
 1. **Google Cloud Text-to-Speech API**
-   - Proyecto: `onyx-shoreline-486313-u3`
    - Voz predeterminada: `es-ES-Standard-A`
    - Formato de audio: MP3
 
 2. **Google Cloud Speech-to-Text API**
-   - Proyecto: `onyx-shoreline-486313-u3`
    - Idioma predeterminado: `es-ES`
    - Codificación: WEBM_OPUS para grabaciones del navegador
 
